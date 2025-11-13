@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Splatoon 3 Clicker Game</title>
+    <style>
+      body {
+        background: linear-gradient(135deg, #2b1055, #7597de);
+        color: white;
+        font-family: "Comic Sans MS", sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        transition: background 0.5s;
+      }
+
+      h1 {
+        font-size: 2.5em;
+        margin-top: 20px;
+        text-shadow: 2px 2px #000;
+      }
+
+      #inkButton {
+        background: #ff66cc;
+        border: none;
+        border-radius: 50%;
+        width: 200px;
+        height: 200px;
+        font-size: 1.2em;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 0 20px #ff66cc;
+        transition: transform 0.1s, background 0.3s, box-shadow 0.3s;
+        position: relative;
+        z-index: 10;
+      }
+
+      #inkButton:hover {
+        transform: scale(1.05);
+      }
+      #inkButton:active {
+        transform: scale(0.95);
+      }
+
+      #stats {
+        margin-top: 30px;
+        font-size: 1.3em;
+      }
+
+      .upgrade,
+      .shop-item {
+        margin: 15px auto;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        width: 320px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .upgrade:hover,
+      .shop-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      #shop {
+        background: rgba(0, 0, 0, 0.8);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        z-index: 20;
+      }
+
+      #shop h2 {
+        margin-bottom: 20px;
+      }
+
+      #closeShop {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        font-size: 1.5em;
+        cursor: pointer;
+      }
+
+      .ink-splat {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 1;
+        pointer-events: none;
+        animation: splat 0.8s ease-out forwards;
+        z-index: 1;
+      }
+
+      @keyframes splat {
+        0% {
+          transform: scale(0);
+          opacity: 1;
+        }
+        60% {
+          transform: scale(1.2);
+          opacity: 0.9;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 0;
+        }
+      }
+
+      #openShop {
+        background: #00ccff;
+        border: none;
+        border-radius: 10px;
+        color: white;
+        padding: 10px 20px;
+        font-size: 1em;
+        cursor: pointer;
+        margin-top: 20px;
+        box-shadow: 0 0 10px #00ccff;
+      }
+
+      #openShop:hover {
+        background: #33ddff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Splatoon 3: Ink Clicker</h1>
+    <button id="inkButton">INK!</button>
+
+    <div id="stats">
+      <p>Ink: <span id="inkCount">0</span></p>
+      <p>Ink per click: <span id="inkPerClick">1</span></p>
+      <p>Ink per second: <span id="inkPerSecond">0</span></p>
+    </div>
+
+    <div id="upgrades">
+      <div class="upgrade" id="buyBrush">🎨 Buy Ink Brush (Cost: 50)</div>
+      <div class="upgrade" id="buyRoller">🌀 Buy Roller (Cost: 200)</div>
+      <div class="upgrade" id="buyShooter">💥 Buy Shooter (Cost: 500)</div>
+      <div class="upgrade" id="buyDrone">🛸 Buy Ink Drone (Cost: 300)</div>
+    </div>
+
+    <button id="openShop">🛍️ Open Cosmetics Shop</button>
+
+    <!-- Cosmetic Shop -->
+    <div id="shop">
+      <div id="closeShop">❌</div>
+      <h2>🧢 Cosmetics Shop</h2>
+      <div class="shop-item" data-type="bg" data-cost="300" data-value="neon">
+        🌈 Neon Background — 300 Ink
+      </div>
+      <div class="shop-item" data-type="bg" data-cost="300" data-value="ocean">
+        🌊 Ocean Blue Background — 300 Ink
+      </div>
+      <div
+        class="shop-item"
+        data-type="button"
+        data-cost="500"
+        data-value="gold"
+      >
+        ✨ Golden Ink Button — 500 Ink
+      </div>
+      <div
+        class="shop-item"
+        data-type="button"
+        data-cost="500"
+        data-value="dark"
+      >
+        🖤 Dark Matter Button — 500 Ink
+      </div>
+    </div>
+
+    <script>
+      let ink = 0;
+      let inkPerClick = 1;
+      let inkPerSecond = 0;
+      let brushCost = 50;
+      let rollerCost = 200;
+      let shooterCost = 500;
+      let droneCost = 300;
+
+      const inkButton = document.getElementById("inkButton");
+      const inkCountEl = document.getElementById("inkCount");
+      const inkPerClickEl = document.getElementById("inkPerClick");
+      const inkPerSecondEl = document.getElementById("inkPerSecond");
+      const shop = document.getElementById("shop");
+      const openShop = document.getElementById("openShop");
+      const closeShop = document.getElementById("closeShop");
+
+      const colors = ["#ff66cc", "#39ff14", "#00ccff", "#ffdd00", "#a64dff"];
+
+      // Click to earn ink
+      inkButton.addEventListener("click", (e) => {
+        ink += inkPerClick;
+        updateInkDisplay();
+        createSplat(e);
+      });
+
+      // Ink splat animation
+      function createSplat(e) {
+        const splat = document.createElement("div");
+        splat.classList.add("ink-splat");
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = Math.random() * 80 + 40;
+        const rect = inkButton.getBoundingClientRect();
+        const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 300;
+        const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 300;
+
+        splat.style.background = color;
+        splat.style.width = `${size}px`;
+        splat.style.height = `${size}px`;
+        splat.style.left = `${x - size / 2}px`;
+        splat.style.top = `${y - size / 2}px`;
+        splat.style.boxShadow = `0 0 20px ${color}`;
+        document.body.appendChild(splat);
+        setTimeout(() => splat.remove(), 800);
+      }
+
+      // Upgrades
+      document
+        .getElementById("buyBrush")
+        .addEventListener("click", () => buyUpgrade("brush"));
+      document
+        .getElementById("buyRoller")
+        .addEventListener("click", () => buyUpgrade("roller"));
+      document
+        .getElementById("buyShooter")
+        .addEventListener("click", () => buyUpgrade("shooter"));
+      document
+        .getElementById("buyDrone")
+        .addEventListener("click", () => buyUpgrade("drone"));
+
+      function buyUpgrade(type) {
+        if (type === "brush" && ink >= brushCost) {
+          ink -= brushCost;
+          inkPerClick += 1;
+          brushCost = Math.round(brushCost * 1.5);
+          document.getElementById(
+            "buyBrush"
+          ).textContent = `🎨 Buy Ink Brush (Cost: ${brushCost})`;
+        } else if (type === "roller" && ink >= rollerCost) {
+          ink -= rollerCost;
+          inkPerClick += 3;
+          rollerCost = Math.round(rollerCost * 1.5);
+          document.getElementById(
+            "buyRoller"
+          ).textContent = `🌀 Buy Roller (Cost: ${rollerCost})`;
+        } else if (type === "shooter" && ink >= shooterCost) {
+          ink -= shooterCost;
+          inkPerClick += 5;
+          shooterCost = Math.round(shooterCost * 1.5);
+          document.getElementById(
+            "buyShooter"
+          ).textContent = `💥 Buy Shooter (Cost: ${shooterCost})`;
+        } else if (type === "drone" && ink >= droneCost) {
+          ink -= droneCost;
+          inkPerSecond += 1;
+          droneCost = Math.round(droneCost * 1.6);
+          document.getElementById(
+            "buyDrone"
+          ).textContent = `🛸 Buy Ink Drone (Cost: ${droneCost})`;
+        } else {
+          alert("Not enough ink!");
+          return;
+        }
+        updateInkDisplay();
+      }
+
+      // Autoclicker interval
+      setInterval(() => {
+        ink += inkPerSecond;
+        updateInkDisplay();
+      }, 1000);
+
+      function updateInkDisplay() {
+        inkCountEl.textContent = ink;
+        inkPerClickEl.textContent = inkPerClick;
+        inkPerSecondEl.textContent = inkPerSecond;
+      }
+
+      // Shop logic
+      openShop.addEventListener("click", () => (shop.style.display = "flex"));
+      closeShop.addEventListener("click", () => (shop.style.display = "none"));
+
+      const shopItems = document.querySelectorAll(".shop-item");
+      shopItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          const cost = parseInt(item.dataset.cost);
+          const type = item.dataset.type;
+          const value = item.dataset.value;
+
+          if (ink >= cost) {
+            ink -= cost;
+            updateInkDisplay();
+            applyCosmetic(type, value);
+            item.textContent += " ✅ Purchased!";
+            item.style.pointerEvents = "none";
+            item.style.opacity = "0.6";
+          } else {
+            alert("Not enough ink for that cosmetic!");
+          }
+        });
+      });
+
+      function applyCosmetic(type, value) {
+        if (type === "bg") {
+          if (value === "neon")
+            document.body.style.background =
+              "linear-gradient(135deg, #ff00ff, #00ffff)";
+          if (value === "ocean")
+            document.body.style.background =
+              "linear-gradient(135deg, #0044ff, #00ffaa)";
+        }
+        if (type === "button") {
+          if (value === "gold") {
+            inkButton.style.background = "#ffcc00";
+            inkButton.style.boxShadow = "0 0 25px #ffcc00";
+          }
+          if (value === "dark") {
+            inkButton.style.background = "#111";
+            inkButton.style.boxShadow = "0 0 25px #888";
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
